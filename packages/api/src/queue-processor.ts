@@ -263,7 +263,7 @@ const setupCronJobs = async () => {
 }
 
 const main = async () => {
-  console.log('[queue-processor]: starting queue processor')
+  logger.info('[queue-processor]: starting queue processor')
 
   const app: Express = express()
   const port = process.env.PORT || 3002
@@ -344,7 +344,7 @@ const main = async () => {
   })
 
   const server = app.listen(port, () => {
-    console.log(`[queue-processor]: started`)
+    logger.info('[queue-processor]: started')
   })
 
   // This is done after all the setup so it can access the
@@ -363,33 +363,33 @@ const main = async () => {
   await setupCronJobs()
 
   workerRedisClient.on('error', (error) => {
-    console.trace('[queue-processor]: redis worker error', { error })
+    logger.error('[queue-processor]: redis worker error', { error })
   })
 
   redisClient.on('error', (error) => {
-    console.trace('[queue-processor]: redis error', { error })
+    logger.error('[queue-processor]: redis error', { error })
   })
 
   const gracefulShutdown = async (signal: string) => {
-    console.log(`[queue-processor]: Received ${signal}, closing server...`)
+    logger.info(`[queue-processor]: Received ${signal}, closing server...`)
     await new Promise<void>((resolve) => {
       server.close((err) => {
-        console.log('[queue-processor]: Express server closed')
+        logger.info('[queue-processor]: Express server closed')
         if (err) {
-          console.log('[queue-processor]: error stopping server', { err })
+          logger.error('[queue-processor]: error stopping server', { err })
         }
 
         resolve()
       })
     })
     await worker.close()
-    console.log('[queue-processor]: Worker closed')
+    logger.info('[queue-processor]: Worker closed')
 
     await redisDataSource.shutdown()
-    console.log('[queue-processor]: Redis connection closed')
+    logger.info('[queue-processor]: Redis connection closed')
 
     await appDataSource.destroy()
-    console.log('[queue-processor]: DB connection closed')
+    logger.info('[queue-processor]: DB connection closed')
 
     process.exit(0)
   }
@@ -410,5 +410,5 @@ const main = async () => {
 
 // only call main if the file was called from the CLI and wasn't required from another module
 if (require.main === module) {
-  main().catch((e) => console.error(e))
+  main().catch((e) => logger.error('[queue-processor]: fatal error', e))
 }

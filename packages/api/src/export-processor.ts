@@ -99,7 +99,7 @@ export const createWorker = (connection: ConnectionOptions) =>
   )
 
 const main = async () => {
-  console.log('[export-processor]: starting export queue processor')
+  logger.info('[export-processor]: starting export queue processor')
 
   const app: Express = express()
   const port = process.env.PORT || 3003
@@ -119,7 +119,7 @@ const main = async () => {
   })
 
   const server = app.listen(port, () => {
-    console.log(`[export-processor]: started`)
+    logger.info('[export-processor]: started')
   })
 
   // This is done after all the setup so it can access the
@@ -136,33 +136,33 @@ const main = async () => {
   const worker = createWorker(workerRedisClient)
 
   workerRedisClient.on('error', (error) => {
-    console.trace('[export-processor]: redis worker error', { error })
+    logger.error('[export-processor]: redis worker error', { error })
   })
 
   redisClient.on('error', (error) => {
-    console.trace('[export-processor]: redis error', { error })
+    logger.error('[export-processor]: redis error', { error })
   })
 
   const gracefulShutdown = async (signal: string) => {
-    console.log(`[export-processor]: Received ${signal}, closing server...`)
+    logger.info(`[export-processor]: Received ${signal}, closing server...`)
     await new Promise<void>((resolve) => {
       server.close((err) => {
-        console.log('[export-processor]: Express server closed')
+        logger.info('[export-processor]: Express server closed')
         if (err) {
-          console.log('[export-processor]: error stopping server', { err })
+          logger.error('[export-processor]: error stopping server', { err })
         }
 
         resolve()
       })
     })
     await worker.close()
-    console.log('[export-processor]: Worker closed')
+    logger.info('[export-processor]: Worker closed')
 
     await redisDataSource.shutdown()
-    console.log('[export-processor]: Redis connection closed')
+    logger.info('[export-processor]: Redis connection closed')
 
     await appDataSource.destroy()
-    console.log('[export-processor]: DB connection closed')
+    logger.info('[export-processor]: DB connection closed')
 
     process.exit(0)
   }
@@ -183,5 +183,5 @@ const main = async () => {
 
 // only call main if the file was called from the CLI and wasn't required from another module
 if (require.main === module) {
-  main().catch((e) => console.error(e))
+  main().catch((e) => logger.error('[export-processor]: fatal error', e))
 }
